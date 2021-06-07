@@ -5,7 +5,6 @@ varying vec3 v_wNormal;
 
 
 //here create uniforms for all the data we need here
-
 uniform vec3 phong_light_;
 uniform vec3 phong_view_;
 
@@ -16,15 +15,12 @@ uniform float palpha;
 
 uniform vec3 pi_a;
 uniform vec3 pi_d;
-uniform vec3 pi_s; 
+uniform vec3 pi_s;
 varying vec3 v_Color;
-
 
 void main()
 {
-
 	//here we set up the normal as a color to see them as a debug
-
 	vec3 v_wNormal_ = normalize(v_wNormal);
 
 	//here write the computations for PHONG.

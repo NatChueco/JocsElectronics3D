@@ -1,20 +1,37 @@
 #include "Stage.h"
-#include "utils.h"
-#include "mesh.h"
-#include "texture.h"
-#include "fbo.h"
-#include "shader.h"
-#include "input.h"
-#include "animation.h"
 #include "game.h"
+#include "utils.h"
+#include "fbo.h"
+#include <cmath>
+#include "animation.h"
+#include "input.h"
+#include "Gamemap.h"
+
+Entity_ arbol;
+
+void playStage::loadMesh() {
+	arbol.mesh = Mesh::Get("data/export.obj");
+	arbol.model = Matrix44();
+	arbol.model.translate(18, 0, 177);
+	arbol.texture = Texture::Get("data/export.png");
+}
+
 
 void playStage::render() {
 	Game* game = Game::instance;
+	loadMesh();
+	setCamera(game->camera, game->model);
+
 	//set the clear color (the background color)
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
 	// Clear the window and the depth buffer
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	
+	game->model = Matrix44();
+	game->model.translate(game->player.pos.x, game->player.pos.y, game->player.pos.z);
+	game->model.rotate(game->player.yaw * DEG2RAD, Vector3(0, 1, 0));
 
 	//set the camera as default
 	game->camera->enable();
@@ -26,31 +43,186 @@ void playStage::render() {
 	
 	//create model matrix for cube
 	Matrix44 m;
-	m.rotate(game->angle * DEG2RAD, Vector3(0, 1, 0));
+	//m.rotate(game->angle * DEG2RAD, Vector3(0, 1, 0));
+	loadmap(game->map);
 
-	if (game->shader)
+	RenderMesh(game->shader, game->skybox, game->skymodel, game->camera, game->tex);
+	RenderMesh(game->shader, game->ground_mesh, game->groundModel, game->camera, game->ground_text,100);
+	RenderMesh(game->shader, game->mainCharacter, game->model, game->camera, game->texCharacter);
+	RenderMesh(game->shader, game->escenaMesh, game->escenaModel, game->camera,game->escenaText);
+	RenderMesh(game->shader, game->treeMesh, game->treeModel, game->camera, game->treeText);
+
+	RenderMesh(game->shader, arbol.mesh,arbol.model, game->camera,arbol.texture);
+
+
+	game->mainCharacter->renderBounding(game->model);
+	game->treeMesh->renderBounding(game->treeModel);
+	game->escenaMesh->renderBounding(game->escenaModel);
+	drawText(2, 2, std::to_string(game->player.pos.x), Vector3(1, 1, 1), 2);
+	drawText(2, 50, std::to_string(game->player.pos.z), Vector3(1, 1, 1), 2);
+
+	drawGrid();
+	SDL_GL_SwapWindow(game->window);
+}
+void playStage::update(float seconds_elapsed) {
+	
+	Game* game = Game::instance;
+
+	float speed = seconds_elapsed *10; //the speed is defined by the seconds_elapsed so it goes constant
+
+
+	//mouse input to rotate the cam
+	if ((Input::mouse_state & SDL_BUTTON_LEFT) || game->mouse_locked) //is left button pressed?
 	{
-		//enable shader
-		game->shader->enable();
+		game->camera->rotate(Input::mouse_delta.x * 0.005f, Vector3(0.0f, -1.0f, 0.0f));
+		game->camera->rotate(Input::mouse_delta.y * 0.005f, game->camera->getLocalVector(Vector3(-1.0f, 0.0f, 0.0f)));
+	}
+	
+	if (!game->locked_camera) {
+		if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) speed *= 10; //move faster with left shift
+		if (Input::isKeyPressed(SDL_SCANCODE_W) || Input::isKeyPressed(SDL_SCANCODE_UP)) game->camera->move(Vector3(0.0f, 0.0f, 1.0f) * speed);
+		if (Input::isKeyPressed(SDL_SCANCODE_S) || Input::isKeyPressed(SDL_SCANCODE_DOWN)) game->camera->move(Vector3(0.0f, 0.0f, -1.0f) * speed);
+		if (Input::isKeyPressed(SDL_SCANCODE_A) || Input::isKeyPressed(SDL_SCANCODE_LEFT)) game->camera->move(Vector3(1.0f, 0.0f, 0.0f) * speed);
+		if (Input::isKeyPressed(SDL_SCANCODE_D) || Input::isKeyPressed(SDL_SCANCODE_RIGHT)) game->camera->move(Vector3(-1.0f, 0.0f, 0.0f) * speed);
 
-		//upload uniforms
-		game->shader->setUniform("u_color", Vector4(1, 1, 1, 1));
-		game->shader->setUniform("u_viewprojection", game->camera->viewprojection_matrix);
-		game->shader->setUniform("u_texture", game->texture, 0);
-		game->shader->setUniform("u_model", m);
-		game->shader->setUniform("u_time", time);
+	}
+	else {
+		
+		//example
+		Matrix44 playerRot;
+		playerRot.setRotation(game->player.yaw * DEG2RAD, Vector3(0, 1, 0));
+		Vector3 playerFront = playerRot.rotateVector(Vector3(0.0f, 0.0f, -1.0f));
+		Vector3 playerRight = playerRot.rotateVector(Vector3(1.0f, 0.0f, 0.0f));
+		Vector3 playerSpeed;
 
-		//do the draw call
-		game->mesh->render(GL_TRIANGLES);
 
-		//disable shader
-		game->shader->disable();
+		if (Input::isKeyPressed(SDL_SCANCODE_W)) playerSpeed = playerSpeed + (playerFront * speed);
+		if (Input::isKeyPressed(SDL_SCANCODE_S)) playerSpeed = playerSpeed + (playerFront * -speed);
+
+		if (Input::isKeyPressed(SDL_SCANCODE_Q)) playerSpeed = playerSpeed + (playerRight * -speed);
+		if (Input::isKeyPressed(SDL_SCANCODE_E)) playerSpeed = playerSpeed + (playerRight * speed);
+
+		if (Input::isKeyPressed(SDL_SCANCODE_D)) game->player.yaw += game->player.rot_speed * seconds_elapsed;
+		if (Input::isKeyPressed(SDL_SCANCODE_A)) game->player.yaw -= game->player.rot_speed * seconds_elapsed;
+
+		Vector3 targetPos = game->player.pos + playerSpeed;
+
+		game->player.pos = checkTreeCollision(targetPos);
+		
 	}
 
-	//Draw the floor grid
-	drawGrid();
+	//async input to move the camera around
 
-	//render the FPS, Draw Calls, etc
-	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
+	//(checkTreeCollision(targetPos);
+
+	/*
+	for (size_t i = 0; i < game->dynamic_entities.size(); i++) {
+		checkCollision(dynamic_entities[i],game->static_entities);
+		checkCollision(dynamic_entities[i], game->dynamic_entities);
+	}*/
+
+	//checkCollision();
+
+	if (Input::isKeyPressed(SDL_SCANCODE_C)) game->locked_camera = !game->locked_camera;
+	//to navigate with the mouse fixed in the middle
+	if (game->mouse_locked)
+		Input::centerMouse();
 
 }
+
+void RenderMesh(Shader* shader,Mesh* mesh, Matrix44 model, Camera* cam, Texture* tex, float tiling) {
+	Vector3 worldPos = model * Vector3(0.0f, 0.0f, 0.0f);
+	if (shader && cam->testSphereInFrustum(worldPos,mesh->radius))
+	{
+		//enable shader
+		shader->enable();
+
+		//upload uniforms
+		shader->setUniform("u_color", Vector4(1, 1, 1, 1));
+		shader->setUniform("u_viewprojection", cam->viewprojection_matrix);
+		if(tex != NULL) shader->setUniform("u_texture", tex, 0);
+		shader->setUniform("u_model", model);
+		shader->setUniform("u_time", time);
+		shader->setUniform("u_texture_tiling", tiling);
+		//do the draw call
+		mesh->render(GL_TRIANGLES);
+
+		//disable shader
+		shader->disable();
+	}
+}
+
+void setCamera(Camera* cam, Matrix44 model) {
+	Vector3 eye = model * Vector3(0.0f, 1.0f, 2.0f);
+	Vector3 center = model * Vector3(0.0f, 1.0f, -3.0f);
+	cam->lookAt(eye, center, Vector3(0.0f, 1.0f, 0.0f));
+}
+
+
+void loadmap(GameMap* map) {
+	Game* game = Game::instance;
+	for (size_t i = 0; i < map->width; i++) {
+
+		for (size_t j = 0; j < map->height; j++) {
+
+			sCell& cell = map->getCell(i, j);
+			int index = (int)cell.type;
+			if (index != 0) continue;
+			sPropViewData& prop = map->viewData[index];
+
+			Matrix44 model;
+			model.translate(i * game->tileWidth, 0.0f, j * game->tileHeight);
+
+			RenderMesh(game->shader, prop.mesh, model, game->camera, prop.texture);
+		}
+	}
+}
+
+Vector3 checkTreeCollision(Vector3 target) {
+	Game* game = Game::instance;
+
+	Vector3 coll;
+	Vector3 collnorm;
+	Vector3 pushAway;
+	Vector3 returned;
+
+	Vector3 centerCharacter = target + Vector3(0.0, 1.0, 0.0);
+
+	int x = target.x / game->tileWidth;
+	int y = target.z / game->tileHeight;
+
+	eCellType type = game->map->getCell(x, y).type;
+
+	if (game->treeMesh->testSphereCollision(game->treeModel, centerCharacter, 0.5, coll, collnorm) || (type == 0)) {
+	
+		pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
+
+		returned = game->player.pos - pushAway;
+		returned.y = game->player.pos.y;
+		return returned;
+	}
+	return target;
+}
+
+/*
+void checkCollision(Entity* entity, std::vector<Entity*> entidades) {
+	
+	Vector3 coll;
+	Vector3 collnorm;
+	Entity* current;
+
+	Vector3 centerCharacter = entity->model * Vector3(0, 0, 0);
+	Vector3 pushAway;
+
+	for (size_t i = 0; i < entidades.size(); i++) {
+		current = entidades[i];
+
+		if (!current->mesh->testSphereCollision(current->model, centerCharacter, 0.5, coll, collnorm)) continue;
+
+		pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
+
+		entity->model.translate(pushAway[0], 0, pushAway[2]);
+
+	}
+
+}*/

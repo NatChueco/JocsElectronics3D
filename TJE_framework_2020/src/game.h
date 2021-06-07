@@ -8,9 +8,18 @@
 #include "includes.h"
 #include "camera.h"
 #include "utils.h"
-#include "World.h"
 #include "animation.h"
+#include "texture.h"
+#include "Stage.h"
+#include "Gamemap.h"
+//#include "Entity.h"
 
+struct sPlayer {
+	Vector3 pos;
+	float yaw;
+	float rot_speed = 100;
+	float radius = 0.5;
+};
 
 class Game
 {
@@ -42,12 +51,43 @@ public:
 	float mouse_speed = 100.0f;
 	FBO* fbo = NULL;
 
-	Stage* current_stage;
+	sPlayer player;
 
+	Mesh* mainCharacter = NULL;
+	Texture* texCharacter = NULL;
+	Matrix44 model;
+
+	Mesh* escenaMesh = NULL;
+	Texture* escenaText = NULL;
+	Matrix44 escenaModel;
+
+	bool locked_camera = true;
+	Stage* current_stage;
 	titleStage* title;
 	tutorialStage* tutorial;
 	playStage* play;
 	endStage* end;
+
+	Mesh* treeMesh = NULL;
+	Texture* treeText = NULL;
+	Matrix44 treeModel;
+
+	GameMap* map;
+
+	//std::vector<Entity*> static_entities;
+	//std::vector<Entity*> dynamic_entities;
+
+	const float tileWidth = 6;
+	const float tileHeight = 6;
+	//Cielo
+	Mesh* skybox;
+	Matrix44 skymodel;
+	Texture* tex;
+
+	//Suelo
+	Mesh* ground_mesh;
+	Texture* ground_text;
+	Matrix44 groundModel;
 
 	Game( int window_width, int window_height, SDL_Window* window );
 

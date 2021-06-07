@@ -7,7 +7,6 @@
 #include "input.h"
 #include "animation.h"
 #include "Stage.h"
-#include "World.h"
 #include <cmath>
 
 //some globals
@@ -38,17 +37,41 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	camera->setPerspective(70.f,window_width/(float)window_height,0.1f,10000.f); //set the projection, we want to be perspective
 
 	//load one texture without using the Texture Manager (Texture::Get would use the manager)
-	texture = new Texture();
- 	texture->load("data/color-atlas-new.png");
+	escenaText = new Texture();
+	escenaText->load("data/export.png");
+	escenaMesh = Mesh::Get("data/export.obj");
 
-	// example of loading Mesh from Mesh Manager
-	mesh = Mesh::Get("data/mundo/firstScene.obj");
+
+	mainCharacter = Mesh::Get("data/pirata_chica1.obj");
+	texCharacter = new Texture();
+	texCharacter->load("data/PolygonMinis_Texture_01_A.png");
+
+	Vector3 eye = model * Vector3(0.0f, 3.0f, 5.0f);
+	Vector3 center = model * Vector3(0.0f, 1.0f, -3.0f);
+	camera->lookAt(eye, center, Vector3(0.0f, 1.0f, 0.0f));
+
+	map = new GameMap();
+	map = map->loadGameMap("data/mymap.map");
+	map->setViewData();
 
 	// example of shader loading using the shaders manager
 	shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
 
+	ground_mesh = new Mesh();
+	ground_mesh->createPlane(200);
+	ground_text = new Texture();
+	ground_text->load("data/grass.tga");
+	//Sky stuff
+	tex = new Texture();
+	skybox = Mesh::Get("data/cielo.ASE");
+	tex->load("data/cielo.tga");
+	// example of shader loading using the shaders manager
+	
 	//hide the cursor
 	SDL_ShowCursor(!mouse_locked); //hide or show the mouse
+
+	//Mandar captura o todo el codigo con el error****
+	//World* mundo = new World();
 
 	title = new titleStage();
 	tutorial = new tutorialStage();
@@ -56,61 +79,25 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	end = new endStage();
 
 	current_stage = play;
+
+	treeText = new Texture();
+	treeText->load("data/color-atlas-new.png");
+	treeMesh = Mesh::Get("data/palm-small_74.obj");
+	treeModel.translate(10, 0, -10);
+
+	player.pos = Vector3(18, 0, 177);
 }
 
 //what to do when the image has to be draw
 void Game::render(void)
 {
-	
-	glClearColor(0.0, 0.0, 0.0, 1.0);
-
-	// Clear the window and the depth buffer
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	//set the camera as default
-	camera->enable();
-
-	//set flags
-	glDisable(GL_BLEND);
-	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
-
-	//create model matrix for cube
-	Matrix44 m;
-	m.rotate(angle * DEG2RAD, Vector3(0, 1, 0));
-
-	if (shader)
-	{
-		//enable shader
-		shader->enable();
-
-		//upload uniforms
-		shader->setUniform("u_color", Vector4(1, 1, 1, 1));
-		shader->setUniform("u_viewprojection", camera->viewprojection_matrix);
-		shader->setUniform("u_texture", texture, 0);
-		shader->setUniform("u_model", m);
-		shader->setUniform("u_time", time);
-
-		//do the draw call
-		mesh->render(GL_TRIANGLES);
-
-		//disable shader
-		shader->disable();
-	}
-
-	//Draw the floor grid
-	drawGrid();
-
-	//render the FPS, Draw Calls, etc
-	drawText(2, 2, getGPUStats(), Vector3(1, 1, 1), 2);
-
-	//swap between front buffer and back buffer
-	SDL_GL_SwapWindow(this->window);
-	
+	current_stage->render();
 }
 
 void Game::update(double seconds_elapsed)
 {
+	current_stage->update(seconds_elapsed);
+	/*
 	float speed = seconds_elapsed * mouse_speed; //the speed is defined by the seconds_elapsed so it goes constant
 
 	//example
@@ -133,6 +120,7 @@ void Game::update(double seconds_elapsed)
 	//to navigate with the mouse fixed in the middle
 	if (mouse_locked)
 		Input::centerMouse();
+	*/
 }
 
 //Keyboard event handler (sync input)
@@ -185,4 +173,5 @@ void Game::onResize(int width, int height)
 	window_width = width;
 	window_height = height;
 }
+
 

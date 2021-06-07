@@ -11,6 +11,9 @@ public:
     //some attributes 
     std::string name;
     Matrix44 model;
+    Mesh* mesh;
+    Texture* texture;
+    BoundingBox aabb;
 
     //methods overwritten by derived classes 
     virtual void render();
