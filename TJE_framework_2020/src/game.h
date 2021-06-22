@@ -12,7 +12,17 @@
 #include "texture.h"
 #include "Stage.h"
 #include "Gamemap.h"
+#include <string>
 //#include "Entity.h"
+
+struct Entity_ {
+	Matrix44 model;
+	Mesh* mesh;
+	Texture* texture;
+	BoundingBox aabb;
+	bool itemBool = false;
+	int item = 1000;
+};
 
 struct sPlayer {
 	Vector3 pos;
@@ -53,9 +63,17 @@ public:
 
 	sPlayer player;
 
+	std::vector<Entity_*> static_entities;
+	std::vector<Entity_*> dynamic_entities;
+	std::vector<Entity_*> mapTrees;
+
 	Mesh* mainCharacter = NULL;
 	Texture* texCharacter = NULL;
 	Matrix44 model;
+
+	Mesh* catCharacter = NULL;
+	Texture* cattexCharacter = NULL;
+	Matrix44 catmodel;
 
 	Mesh* escenaMesh = NULL;
 	Texture* escenaText = NULL;
@@ -66,19 +84,13 @@ public:
 	titleStage* title;
 	tutorialStage* tutorial;
 	playStage* play;
-	endStage* end;
-
-	Mesh* treeMesh = NULL;
-	Texture* treeText = NULL;
-	Matrix44 treeModel;
+	endStage* end;;
 
 	GameMap* map;
 
-	//std::vector<Entity*> static_entities;
-	//std::vector<Entity*> dynamic_entities;
-
 	const float tileWidth = 6;
 	const float tileHeight = 6;
+
 	//Cielo
 	Mesh* skybox;
 	Matrix44 skymodel;
@@ -88,6 +100,11 @@ public:
 	Mesh* ground_mesh;
 	Texture* ground_text;
 	Matrix44 groundModel;
+
+	//Box
+	Mesh* box_mesh;
+	Texture* box_text;
+	Matrix44 boxModel;
 
 	Game( int window_width, int window_height, SDL_Window* window );
 
@@ -104,6 +121,10 @@ public:
 	void onGamepadButtonDown(SDL_JoyButtonEvent event);
 	void onGamepadButtonUp(SDL_JoyButtonEvent event);
 	void onResize(int width, int height);
+
+	//Read from file
+	void readFile(char* nombre);
+	void loadmap(GameMap* map);
 
 };
 

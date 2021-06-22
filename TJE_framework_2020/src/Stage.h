@@ -5,14 +5,14 @@
 #include "camera.h"
 #include "Gamemap.h"
 
+/*
 struct Entity_ {
-	std::string name;
 	Matrix44 model;
 	Mesh* mesh;
 	Texture* texture;
 	BoundingBox aabb;
 };
-
+*/
 
 class Stage {
 public:
@@ -31,8 +31,8 @@ public:
 class tutorialStage : public Stage {
 public:
 	//tutorialStage();
-	virtual void render() {};
-	virtual void update(float dt) {};
+	virtual void render();
+	virtual void update(float dt);
 };
 
 class playStage : public Stage {
@@ -40,7 +40,7 @@ public:
 	//playStage();
 	virtual void render() ;
 	virtual void update(float dt);
-	void loadMesh();
+	//void loadMesh();
 };
 
 class endStage : public Stage {
@@ -54,4 +54,4 @@ void RenderMesh(Shader* shader, Mesh* mesh, Matrix44 model, Camera* cam, Texture
 void loadmap(GameMap* map);
 void setCamera(Camera* cam, Matrix44 model);
 //void checkCollision(std::vector<Entity*> entidades);
-Vector3 checkTreeCollision(Vector3 target);
+Vector3 checkCollision(Vector3 target);

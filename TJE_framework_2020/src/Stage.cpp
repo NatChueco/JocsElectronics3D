@@ -7,6 +7,7 @@
 #include "input.h"
 #include "Gamemap.h"
 
+/*
 Entity_ arbol;
 
 void playStage::loadMesh() {
@@ -15,11 +16,69 @@ void playStage::loadMesh() {
 	arbol.model.translate(18, 0, 177);
 	arbol.texture = Texture::Get("data/export.png");
 }
+*/
 
+void tutorialStage::render() {
+	Game* game = Game::instance;
+	//loadMesh();
+	setCamera(game->camera, game->model);
+
+	//set the clear color (the background color)
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+
+	// Clear the window and the depth buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+	game->model = Matrix44();
+	game->model.translate(game->player.pos.x, game->player.pos.y, game->player.pos.z);
+	game->model.rotate(game->player.yaw * DEG2RAD, Vector3(0, 1, 0));
+
+	//set the camera as default
+	game->camera->enable();
+
+	//set flags
+	glDisable(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+
+	RenderMesh(game->shader, game->mainCharacter, game->model, game->camera, game->texCharacter);
+	RenderMesh(game->shader, game->catCharacter, game->catmodel, game->camera, game->cattexCharacter);
+	RenderMesh(game->shader, game->box_mesh, game->boxModel, game->camera, game->box_text);
+
+	drawGrid();
+	SDL_GL_SwapWindow(game->window);
+}
+
+void tutorialStage::update(float seconds_elapsed) {
+
+	Game* game = Game::instance;
+
+	float speed = seconds_elapsed * 10; //the speed is defined by the seconds_elapsed so it goes constant
+
+	Matrix44 playerRot;
+	playerRot.setRotation(game->player.yaw * DEG2RAD, Vector3(0, 1, 0));
+	Vector3 playerFront = playerRot.rotateVector(Vector3(0.0f, 0.0f, -1.0f));
+	Vector3 playerRight = playerRot.rotateVector(Vector3(1.0f, 0.0f, 0.0f));
+	Vector3 playerSpeed;
+
+
+	if (Input::isKeyPressed(SDL_SCANCODE_W)) playerSpeed = playerSpeed + (playerFront * speed);
+	if (Input::isKeyPressed(SDL_SCANCODE_S)) playerSpeed = playerSpeed + (playerFront * -speed);
+
+	if (Input::isKeyPressed(SDL_SCANCODE_Q)) playerSpeed = playerSpeed + (playerRight * -speed);
+	if (Input::isKeyPressed(SDL_SCANCODE_E)) playerSpeed = playerSpeed + (playerRight * speed);
+
+	if (Input::isKeyPressed(SDL_SCANCODE_D)) game->player.yaw += game->player.rot_speed * seconds_elapsed;
+	if (Input::isKeyPressed(SDL_SCANCODE_A)) game->player.yaw -= game->player.rot_speed * seconds_elapsed;
+
+	Vector3 targetPos = game->player.pos + playerSpeed;
+	game->player.pos = targetPos;
+}
 
 void playStage::render() {
 	Game* game = Game::instance;
-	loadMesh();
+	//loadMesh();
 	setCamera(game->camera, game->model);
 
 	//set the clear color (the background color)
@@ -44,20 +103,21 @@ void playStage::render() {
 	//create model matrix for cube
 	Matrix44 m;
 	//m.rotate(game->angle * DEG2RAD, Vector3(0, 1, 0));
-	loadmap(game->map);
 
 	RenderMesh(game->shader, game->skybox, game->skymodel, game->camera, game->tex);
-	RenderMesh(game->shader, game->ground_mesh, game->groundModel, game->camera, game->ground_text,100);
+	RenderMesh(game->shader, game->ground_mesh, game->groundModel, game->camera, game->ground_text);
 	RenderMesh(game->shader, game->mainCharacter, game->model, game->camera, game->texCharacter);
-	RenderMesh(game->shader, game->escenaMesh, game->escenaModel, game->camera,game->escenaText);
-	RenderMesh(game->shader, game->treeMesh, game->treeModel, game->camera, game->treeText);
+	//RenderMesh(game->shader, game->escenaMesh, game->escenaModel, game->camera,game->escenaText);
 
-	RenderMesh(game->shader, arbol.mesh,arbol.model, game->camera,arbol.texture);
 
+	for (size_t i = 0; i < game->static_entities.size(); i++) {
+		RenderMesh(game->shader, game->static_entities[i]->mesh, game->static_entities[i]->model, game->camera, game->static_entities[i]->texture);
+	}
+	//RenderMesh(game->shader, game->static_entities[0]->mesh, game->static_entities[0]->model, game->camera, game->static_entities[0]->texture);
+	
 
 	game->mainCharacter->renderBounding(game->model);
-	game->treeMesh->renderBounding(game->treeModel);
-	game->escenaMesh->renderBounding(game->escenaModel);
+	//game->escenaMesh->renderBounding(game->escenaModel);
 	drawText(2, 2, std::to_string(game->player.pos.x), Vector3(1, 1, 1), 2);
 	drawText(2, 50, std::to_string(game->player.pos.z), Vector3(1, 1, 1), 2);
 
@@ -106,8 +166,7 @@ void playStage::update(float seconds_elapsed) {
 		if (Input::isKeyPressed(SDL_SCANCODE_A)) game->player.yaw -= game->player.rot_speed * seconds_elapsed;
 
 		Vector3 targetPos = game->player.pos + playerSpeed;
-
-		game->player.pos = checkTreeCollision(targetPos);
+		if((targetPos.x <= 183.0 && targetPos.x >=3.0 && targetPos.z <=183.0 && targetPos.z >= 3.0)){ game->player.pos = checkCollision(targetPos); }
 		
 	}
 
@@ -159,26 +218,7 @@ void setCamera(Camera* cam, Matrix44 model) {
 }
 
 
-void loadmap(GameMap* map) {
-	Game* game = Game::instance;
-	for (size_t i = 0; i < map->width; i++) {
-
-		for (size_t j = 0; j < map->height; j++) {
-
-			sCell& cell = map->getCell(i, j);
-			int index = (int)cell.type;
-			if (index != 0) continue;
-			sPropViewData& prop = map->viewData[index];
-
-			Matrix44 model;
-			model.translate(i * game->tileWidth, 0.0f, j * game->tileHeight);
-
-			RenderMesh(game->shader, prop.mesh, model, game->camera, prop.texture);
-		}
-	}
-}
-
-Vector3 checkTreeCollision(Vector3 target) {
+Vector3 checkCollision(Vector3 target) {
 	Game* game = Game::instance;
 
 	Vector3 coll;
@@ -191,15 +231,17 @@ Vector3 checkTreeCollision(Vector3 target) {
 	int x = target.x / game->tileWidth;
 	int y = target.z / game->tileHeight;
 
-	eCellType type = game->map->getCell(x, y).type;
+	//eCellType type = game->map->getCell(x-6, y-6).type;
 
-	if (game->treeMesh->testSphereCollision(game->treeModel, centerCharacter, 0.5, coll, collnorm) || (type == 0)) {
-	
-		pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
+	for (size_t i = 0; i < game->static_entities.size(); i++) {
 
-		returned = game->player.pos - pushAway;
-		returned.y = game->player.pos.y;
-		return returned;
+		if (game->static_entities[i]->mesh->testSphereCollision(game->static_entities[i]->model, centerCharacter, 0.5, coll, collnorm)) {
+			pushAway = normalize(coll - centerCharacter) * game->elapsed_time;
+
+			returned = game->player.pos - pushAway;
+			returned.y = game->player.pos.y;
+			return returned;
+		}
 	}
 	return target;
 }

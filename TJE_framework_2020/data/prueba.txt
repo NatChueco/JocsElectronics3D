@@ -1,0 +1,15 @@
+25 0 165 data/mesh/arbol.obj data/mesh/arboles1.png 
+25 0 165 data/mesh/arbol.obj data/mesh/arboles1.png 
+25 0 171 data/mesh/arbol.obj data/mesh/arboles1.png  
+21 0 166 data/mesh/arbol.obj data/mesh/arboles1.png 
+15 0 161 data/mesh/arbol.obj data/mesh/arboles1.png 
+10 0 154 data/mesh/arbol.obj data/mesh/arboles1.png 
+11 0 145 data/mesh/arbol.obj data/mesh/arboles1.png 
+20 0 145 data/mesh/arbol.obj data/mesh/arboles1.png 
+31 0 152 data/mesh/arbol.obj data/mesh/arboles1.png 
+36 0 166 data/mesh/arbol.obj data/mesh/arboles1.png 
+45 0 165 data/mesh/arbol.obj data/mesh/arboles1.png 
+50 0 177 data/mesh/arbol.obj data/mesh/arboles1.png 
+63 0 170 data/mesh/arbol.obj data/mesh/arboles1.png 
+76 0 170 data/mesh/arbol.obj data/mesh/arboles1.png 
+78 0 180 data/mesh/arbol.obj data/mesh/arboles1.png 

@@ -9,6 +9,13 @@
 #include "Stage.h"
 #include <cmath>
 
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <cstdlib>
+
+using namespace std;
+
 //some globals
 
 Game* Game::instance = NULL;
@@ -27,13 +34,18 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	elapsed_time = 0.0f;
 	mouse_locked = false;
 
+	char* nombre;
+	nombre = "data/prueba.txt";
+	readFile(nombre);
+	
+
 	//OpenGL flags
 	glEnable( GL_CULL_FACE ); //render both sides of every triangle
 	glEnable( GL_DEPTH_TEST ); //check the occlusions using the Z buffer
 
 	//create our camera
 	camera = new Camera();
-	camera->lookAt(Vector3(0.f,100.f, 100.f),Vector3(0.f,0.f,0.f), Vector3(0.f,1.f,0.f)); //position the camera and point to 0,0,0
+	//camera->lookAt(Vector3(0.f,100.f, 100.f),Vector3(0.f,0.f,0.f), Vector3(0.f,1.f,0.f)); //position the camera and point to 0,0,0
 	camera->setPerspective(70.f,window_width/(float)window_height,0.1f,10000.f); //set the projection, we want to be perspective
 
 	//load one texture without using the Texture Manager (Texture::Get would use the manager)
@@ -41,10 +53,20 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	escenaText->load("data/export.png");
 	escenaMesh = Mesh::Get("data/export.obj");
 
+	box_mesh = Mesh::Get("data/box1.obj");
+	box_text = Texture::Get("data/white.png");
+
 
 	mainCharacter = Mesh::Get("data/pirata_chica1.obj");
-	texCharacter = new Texture();
-	texCharacter->load("data/PolygonMinis_Texture_01_A.png");
+	texCharacter = Texture::Get("data/PolygonMinis_Texture_01_A.png");
+
+	Animation* anim = Animation::Get("data/animations/animationchica.skanim");
+	anim->assignTime(time);
+	anim->skeleton.renderSkeleton(camera, model);
+
+	catCharacter = Mesh::Get("data/Cheshirev2.obj");
+	cattexCharacter = Texture::Get("data/CheshireCat_DMA.png");
+
 
 	Vector3 eye = model * Vector3(0.0f, 3.0f, 5.0f);
 	Vector3 center = model * Vector3(0.0f, 1.0f, -3.0f);
@@ -53,14 +75,15 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 	map = new GameMap();
 	map = map->loadGameMap("data/mymap.map");
 	map->setViewData();
+	loadmap(map);
 
 	// example of shader loading using the shaders manager
 	shader = Shader::Get("data/shaders/basic.vs", "data/shaders/texture.fs");
 
 	ground_mesh = new Mesh();
 	ground_mesh->createPlane(200);
-	ground_text = new Texture();
-	ground_text->load("data/grass.tga");
+	ground_text = Texture::Get("data/grass.tga");
+
 	//Sky stuff
 	tex = new Texture();
 	skybox = Mesh::Get("data/cielo.ASE");
@@ -80,12 +103,9 @@ Game::Game(int window_width, int window_height, SDL_Window* window)
 
 	current_stage = play;
 
-	treeText = new Texture();
-	treeText->load("data/color-atlas-new.png");
-	treeMesh = Mesh::Get("data/palm-small_74.obj");
-	treeModel.translate(10, 0, -10);
-
 	player.pos = Vector3(18, 0, 177);
+
+	//player.pos = Vector3(0, 0, 0);
 }
 
 //what to do when the image has to be draw
@@ -174,4 +194,73 @@ void Game::onResize(int width, int height)
 	window_height = height;
 }
 
+void Game::readFile(char* name) {
+	string linea;
+	
+	string nombre = name;
+
+	ifstream fichero(nombre.c_str());
+	if (fichero.fail())
+	{
+		std::cout << "No existe el fichero!" << std::endl;
+		exit(1);
+	}
+
+	while (getline(fichero, linea))
+	{
+		std::string stats[15];
+		
+		int i = 0;
+
+		string del = " ";
+		int start = 0;
+		int end = linea.find(del);
+		while (end != -1) {
+			stats[i] = linea.substr(start, end - start);
+			i++;
+
+			start = end + del.size();
+			end = linea.find(del, start);
+		}
+
+		cout << stats[0];
+
+		Entity_* entidad = new Entity_;
+
+		entidad->model.setTranslation(stoi(stats[0]), stoi(stats[1]), stoi(stats[2]));
+
+		entidad->mesh = Mesh::Get(stats[3].c_str());
+
+		entidad->texture = Texture::Get(stats[4].c_str());
+
+		static_entities.push_back(entidad);
+	}
+
+	fichero.close();
+}
+
+void Game::loadmap(GameMap* map) {
+	Game* game = Game::instance;
+	for (size_t i = 0; i < map->width; i++) {
+
+		for (size_t j = 0; j < map->height; j++) {
+
+			sCell& cell = map->getCell(i, j);
+			int index = (int)cell.type;
+			if (index != 0) continue;
+			sPropViewData& prop = map->viewData[index];
+
+			Matrix44 model;
+			model.translate(i * game->tileWidth, 0.0f, j * game->tileHeight);
+			Entity_* entidad = new Entity_;
+			entidad->mesh = prop.mesh;
+			entidad->texture = prop.texture;
+			entidad->model = model;
+			game->static_entities.push_back(entidad);
+
+			//RenderMesh(game->shader, prop.mesh, model, game->camera, prop.texture);
+
+		}
+	}
+}
 
