@@ -1,0 +1,16 @@
+# Blender MTL File: 'alice1.blend'
+# Material Count: 1
+
+newmtl Alice
+Ns 17.999914
+Ka 1.000000 1.000000 1.000000
+Kd 0.588000 0.588000 0.588000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd alice\\textures\\Alice_BaseColor.png
+map_Ns alice\\textures\\Alice_Roughness.png
+map_d alice\\textures\\Alice_BaseColor.png
+refl alice\\textures\\Alice_Metallic.png
